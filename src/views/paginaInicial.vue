@@ -1,36 +1,45 @@
 <script setup>
 import { ref } from 'vue'
-const greeting = ref('Aixo es la pàgina inicial')
-
 const dadesLlibres= ref([])
 import { onBeforeMount } from 'vue'
 
-onBeforeMount(() => {
+//Aixo es un moment determinat
+// onBeforeMount(() => {
+//   fetch('http://aperezh.daw.inspedralbes.cat/libros.php')
+//   .then(response => response.json())
+//   .then(data => {
+//     console.log(data)
+//     dadesLlibres.value=data.libros
+//     });
+// })
 
-  fetch('http://aperezh.daw.inspedralbes.cat/libros.php')
-  .then(response => response.json())
-  .then(data => {
-    console.log(data)
-    dadesLlibres.value=data.libros
-    });
-
-  console.log(`the component is now mounted.`)
+onBeforeMount(async () => {
+  const dades= await fetch('http://aperezh.daw.inspedralbes.cat/libros.php')
+  const dades2 =  await dades.json()
+  console.log(dades2)
+  dadesLlibres.value=dades2.libros
 })
+
+
 </script>
 
 <template>
-  <h1>Aqui vindrà un llistat de llibres</h1>
-  <p class="greeting">{{ greeting }}</p>
+  <h1>Llibres favorits</h1>
 
-  <div v-for="actual in dadesLlibres">
-    <img height="50px" :src="actual.imagen" alt="">
-    {{ actual.titulo }}
+  <div class="row">
+  <div class="col-md-3" v-for="actual in dadesLlibres">
+    
+        <div class="card" style="width: 18rem;">
+          <img :src="actual.imagen"  class="card-img-top" alt="...">
+          <div class="card-body">
+            <h5 class="card-title">{{ actual.titulo }}</h5>
+            <p class="card-text">{{actual.autor}}</p>
+            <a href="#" class="btn btn-primary">Go somewhere</a>
+          </div>
+        </div>
+   
+    
   </div>
+</div>
 </template>
 
-<style>
-.greeting {
-  color: red;
-  font-weight: bold;
-}
-</style>
