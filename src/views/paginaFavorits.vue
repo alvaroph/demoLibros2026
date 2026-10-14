@@ -6,6 +6,7 @@ const greeting = ref('Hello World!')
 </script>
 
 <template>
+  <h1>Pàgina de favorits</h1>
   <p class="greeting">{{ greeting }}</p>
   <cmpProva/>
   <cmpProva/>

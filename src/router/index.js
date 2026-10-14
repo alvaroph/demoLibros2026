@@ -1,7 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
-
-import Prova from '../views/paginaProva.vue'
+import paginaFavorits from '../views/paginaFavorits.vue'
 import paginaInicial from '../views/paginaInicial.vue'
 
 const router = createRouter({
@@ -14,9 +12,9 @@ const router = createRouter({
     },
    
      {
-      path: '/prova',
-      name: 'prova',
-      component: Prova,
+      path: '/favorits',
+      name: 'favorits',
+      component: paginaFavorits,
     },
   ],
 })
