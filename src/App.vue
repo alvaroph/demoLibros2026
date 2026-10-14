@@ -9,7 +9,7 @@ import { RouterLink, RouterView } from 'vue-router'
     <div class="wrapper">
       <nav>
         <RouterLink class="btn btn-warning" to="/">Inici</RouterLink>
-        <RouterLink to="/favorits">Llibres favorits</RouterLink>
+        <RouterLink class="btn btn-danger" to="/favorits">Llibres favorits</RouterLink>
       </nav>
     </div>
   </header>
