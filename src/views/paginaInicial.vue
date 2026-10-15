@@ -11,16 +11,18 @@ onBeforeMount(async () => {
   dadesLlibres.value = await getLlibres()
 })
 
+  function afegirFav(id){
+      //De moment fem un console.log
+      //TODO: haurem d'agafar les dades del llibre i afegirles a PINIA
+        alert("el llibre amb id"+ id + " vol ser favorit")
+    }
 </script>
 
 <template>
   <h1>Llibres favorits</h1>
-
   <div class="row">
   <div class="col-md-3" v-for="actual in dadesLlibres">
-    
-        <fitxaLlibre :infoLlibre="actual"/>
-    
+        <fitxaLlibre @peticioFav="afegirFav" :infoLlibre="actual"/>
   </div>
 </div>
 </template>

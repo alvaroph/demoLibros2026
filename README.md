@@ -2,7 +2,7 @@
 
 Aplicació web de demostració per consultar llibres, desenvolupada amb Vue 3 i Vite. Actualment mostra un catàleg obtingut d’una API externa i incorpora una pàgina de prova per als favorits.
 
-> La gestió de favorits encara no està implementada: el botó de les targetes no desa llibres i la pàgina de favorits només conté contingut de demostració.
+> La comunicació entre el component fill i el pare ja està implementada: el botó de cada targeta envia l’identificador del llibre a la pàgina inicial, que mostra una alerta. Encara no es desen favorits i la pàgina de favorits només conté contingut de demostració.
 
 ## Tecnologies
 
@@ -36,9 +36,24 @@ Cada targeta rep el llibre mitjançant la prop `infoLlibre` i mostra:
 - Imatge (`imagen`).
 - Títol (`titulo`).
 - Autor (`autor`).
-- Enllaç «Adfegir favorit», actualment amb `href="#"` i sense lògica associada.
+- Enllaç «Adfegir favorit», amb `href="#"`, que emet l’esdeveniment `peticioFav` amb l’identificador del llibre.
 
 La distribució fa servir les classes de Bootstrap `row` i `col-md-3`; les targetes tenen una amplada fixa de `18rem`. Tot i que el títol de la pàgina inicial és «Llibres favorits», el contingut és el catàleg retornat per l’API, no una selecció de favorits.
+
+### Comunicació entre pare i fill
+
+La pàgina `paginaInicial.vue` és el **pare** i cada targeta `cmpFitxaLlibre.vue` és un **fill**. La comunicació es fa en les dues direccions:
+
+1. **Pare → fill, mitjançant props:** el pare passa l’objecte del llibre amb `:infoLlibre="actual"`; el fill declara aquesta prop amb `defineProps(['infoLlibre'])`.
+2. **Fill → pare, mitjançant esdeveniments:** el fill declara `defineEmits(['peticioFav'])` i, en clicar l’enllaç, executa `$emit('peticioFav', infoLlibre.id)`.
+3. **Resposta del pare:** el pare escolta l’esdeveniment amb `@peticioFav="afegirFav"`. La funció `afegirFav(id)` rep l’identificador i mostra una alerta indicant quin llibre es vol marcar com a favorit.
+
+```vue
+<!-- paginaInicial.vue: passa les dades i escolta la petició del fill -->
+<fitxaLlibre :infoLlibre="actual" @peticioFav="afegirFav" />
+```
+
+Aquest flux ja està connectat, però l’alerta és només demostrativa: no modifica cap llista ni persisteix la selecció.
 
 ## Servei de dades
 
@@ -56,6 +71,7 @@ El codi consumidor espera una estructura com aquesta (exemple il·lustratiu, no 
 {
   "libros": [
     {
+      "id": 1,
       "imagen": "https://exemple.cat/portada.jpg",
       "titulo": "Títol del llibre",
       "autor": "Nom de l’autor"
@@ -145,7 +161,7 @@ No hi ha scripts de proves automatitzades ni de lint configurats.
 
 ## Limitacions i aspectes pendents
 
-- **Favorits:** falta implementar l’addició, l’eliminació, l’estat compartit i la persistència dels llibres seleccionats.
+- **Favorits:** la petició del fill al pare ja està implementada amb `peticioFav`, però el pare només mostra una alerta. Falta implementar l’addició real, l’eliminació, l’estat compartit i la persistència dels llibres seleccionats.
 - **Pàgina de favorits:** encara mostra «Hello World!» i components de prova, no llibres desats.
 - **Gestió de peticions:** no es comprova `response.ok`, no es capturen errors i no hi ha indicadors de càrrega ni missatges per a llistes buides.
 - **Dependència externa:** el catàleg depèn de la disponibilitat del servei i dels permisos CORS que aquest proporcioni.
