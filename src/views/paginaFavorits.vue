@@ -1,23 +1,24 @@
 <script setup>
-import { ref } from 'vue'
-import cmpProva from '../components/componentProva.vue'
+//PINIA 1. IMPORTO L'STORE
+  import { useLlibresStore } from '@/stores/llibres'
+  //PINIA 2. CRISO AL STORE
+  const store= useLlibresStore() 
 
-const greeting = ref('Hello World!')
+  function eliminarFavorits(id){
+
+    console.log("aqui anire a pinia i borrare l'actual")
+  }
+
 </script>
 
 <template>
   <h1>Pàgina de favorits</h1>
-  <p class="greeting">{{ greeting }}</p>
-  <cmpProva/>
-  <cmpProva/>
-  <cmpProva/>
-  <cmpProva/>
 
+  <div v-for="(actual,index) in store.favorits">
+      Favorit {{index}} - {{actual.titulo}}
+      <button @click="eliminarFavorits(index)" class="btn btn-danger">Eliminar de favorits</button>
+  </div>
 </template>
 
 <style>
-.greeting {
-  color: red;
-  font-weight: bold;
-}
 </style>

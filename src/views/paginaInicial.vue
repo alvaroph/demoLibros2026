@@ -1,20 +1,32 @@
 <script setup>
 import { ref } from 'vue'
-const dadesLlibres= ref([])
 import { onBeforeMount } from 'vue'
 import fitxaLlibre from '@/components/cmpFitxaLlibre.vue'
 import { getLlibres } from '@/services/communicationManager'
 
+//PINIA 1. IMPORTO EL STORE STORES
+import { useLlibresStore } from '@/stores/llibres'
+
+//ARRAY DE LLIBRES PER MOSTRARLOS
+const dadesLlibres= ref([])
+
 
 onBeforeMount(async () => {
-  //ABANS DE MUNTAR ELS COMPONENTS DEMANO LES DADES
+  //1. ABANS DE MUNTAR ELS COMPONENTS DEMANO LES DADES AL COMMUNICATION MANAGER
   dadesLlibres.value = await getLlibres()
 })
 
   function afegirFav(id){
-      //De moment fem un console.log
-      //TODO: haurem d'agafar les dades del llibre i afegirles a PINIA
-        alert("el llibre amb id"+ id + " vol ser favorit")
+    //PINIA 2. RECUPERO EL STORE i es dira store
+      const store= useLlibresStore();
+      //GUARDO LA INFORMACIÓ DEL LLIBRE SELECCIONAT
+
+      //PINIA 3. FAIG SERVIR METODES O DADES DEL STORE
+      store.afegirFavorit(dadesLlibres.value[id-1])
+
+      //La versió de sota es podria fer pero es millor fer servir mètodes
+      //store.favorits.push(dadesLlibres.value[id-1])
+
     }
 </script>
 
