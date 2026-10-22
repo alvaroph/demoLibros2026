@@ -17,6 +17,7 @@ Aplicació de demostració amb **Vue 3 + Vite** que mostra un catàleg de llibre
 11. [Pinia: estat compartit](#11-pinia-estat-compartit)
 12. [Vue Router](#12-vue-router)
 13. [Inicialització de l'aplicació (`main.js`)](#13-inicialització-de-laplicació)
+14. [La carpeta `public` i els recursos estàtics](#14-la-carpeta-public-i-els-recursos-estàtics)
 
 ---
 
@@ -266,11 +267,43 @@ app.use(router)          // activa el router
 app.mount('#app')        // munta l'app a <div id="app"> d'index.html
 ```
 
+## 14. La carpeta `public` i els recursos estàtics
+
+Vite distingeix dues maneres de fer servir fitxers (imatges, GIF, icones…):
+
+| | `public/` | `src/assets/` |
+| --- | --- | --- |
+| Tractament | Es copia tal qual a l'arrel del servidor, sense processar | Vite els processa i els empaqueta (en canvia el nom amb un *hash*) |
+| Com s'hi accedeix | Ruta absoluta des de l'arrel: **`/`** | Ruta relativa o amb l'àlies `@` |
+| Exemple del projecte | `public/loading.gif` → `src="/loading.gif"` | `src/assets/logo.svg` → `src="@/assets/logo.svg"` |
+
+**Idea clau:** per a Vue/Vite, **`/` és la carpeta `public`**. Tot el que hi ha dins `public/` es serveix com si estigués a l'arrel del web, i per això no s'escriu `public` a la ruta.
+
+**Al codi:**
+
+```html
+<!-- paginaInicial.vue: el GIF de càrrega surt de public/loading.gif -->
+<div v-if="loading">
+  <img src="/loading.gif" alt="">
+</div>
+```
+
+```html
+<!-- App.vue: aquest logotip, en canvi, surt de src/assets (passa per Vite) -->
+<img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+```
+
+- Si la ruta fos `src="/public/loading.gif"` **no** funcionaria: la carpeta `public` desapareix de la URL.
+- A la compilació (`npm run build`), el contingut de `public/` es copia a l'arrel de `dist/`.
+- `public/` s'usa per a fitxers que han de mantenir el nom exacte o que es referencien per ruta fixa (`favicon.ico`, `loading.gif`); `src/assets/` per a recursos que importen els components.
+
 ---
 
 ## Estructura del projecte
 
 ```text
+public/
+└── loading.gif                     # Servit des de l'arrel: <img src="/loading.gif">
 src/
 ├── main.js                         # Crea l'app i registra Pinia i el router
 ├── App.vue                         # Capçalera, navegació i <RouterView>
