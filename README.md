@@ -1,175 +1,297 @@
 # demoLibros
 
-Aplicació web de demostració per consultar llibres, desenvolupada amb Vue 3 i Vite. Actualment mostra un catàleg obtingut d’una API externa i incorpora una pàgina de prova per als favorits.
+Aplicació de demostració amb **Vue 3 + Vite** que mostra un catàleg de llibres, permet marcar-los com a favorits i filtrar-los. Serveix com a repàs dels conceptes treballats a classe; cada apartat explica el concepte i com es tradueix al codi.
 
-> La comunicació entre el component fill i el pare ja està implementada: el botó de cada targeta envia l’identificador del llibre a la pàgina inicial, que mostra una alerta. Encara no es desen favorits i la pàgina de favorits només conté contingut de demostració.
+## Conceptes treballats
 
-## Tecnologies
+1. [Estructura d'un component (`<script setup>`, `<template>`, `<style>`)](#1-estructura-dun-component)
+2. [Reactivitat amb `ref`](#2-reactivitat-amb-ref)
+3. [Hooks del cicle de vida (`onBeforeMount`)](#3-hooks-del-cicle-de-vida)
+4. [Servei de comunicació amb l'API (`fetch` + `async/await`)](#4-servei-de-comunicació-amb-lapi)
+5. [Gestió d'errors i estat de càrrega (`try/catch/finally`)](#5-gestió-derrors-i-estat-de-càrrega)
+6. [Directives de plantilla (`v-for`, `v-if`, `v-else`, `v-model`, `:`, `@`)](#6-directives-de-plantilla)
+7. [Comunicació pare → fill (props)](#7-comunicació-pare--fill-props)
+8. [Comunicació fill → pare (emits)](#8-comunicació-fill--pare-emits)
+9. [Slots](#9-slots)
+10. [Propietats computades (`computed`)](#10-propietats-computades)
+11. [Pinia: estat compartit](#11-pinia-estat-compartit)
+12. [Vue Router](#12-vue-router)
+13. [Inicialització de l'aplicació (`main.js`)](#13-inicialització-de-laplicació)
 
-- **Vue 3** amb Composition API i components `.vue` amb `<script setup>`.
-- **JavaScript** amb mòduls ES.
-- **Vue Router** per navegar entre pàgines sense recarregar l’aplicació.
-- **Pinia**, registrat a l’aplicació, però encara sense ús per gestionar llibres.
-- **Vite**, amb els connectors de Vue i Vue DevTools.
-- **Bootstrap 5.3.8**, carregat per CDN des d’`index.html`.
-- **Fetch API** per consultar el servei de llibres.
+---
 
-Les dependències i els rangs de versions es defineixen a `package.json`; `package-lock.json` registra les versions resoltes.
+## 1. Estructura d'un component
 
-## Funcionalitats actuals
+Un fitxer `.vue` (*Single File Component*) agrupa en un sol lloc la lògica, el HTML i els estils.
 
-### Navegació
+- `<script setup>`: la lògica amb Composition API. Tot el que es declara aquí (variables, funcions, imports) és accessible directament des de la plantilla.
+- `<template>`: el HTML amb les directives de Vue.
+- `<style>` / `<style scoped>`: els estils; amb `scoped` només afecten aquest component.
 
-`App.vue` mostra el logotip de Vue i dos enllaços de navegació. La pàgina seleccionada es renderitza amb `RouterView`.
+**Al codi:** tots els fitxers de `src/components/` i `src/views/`. Els components importats (p. ex. `import fitxaLlibre from '@/components/cmpFitxaLlibre.vue'` a `paginaInicial.vue`) s'usen a la plantilla com a etiqueta (`<fitxaLlibre />`) sense registrar-los. L'àlies `@` apunta a `src/`.
 
-| Ruta | Nom | Vista | Contingut actual |
-| --- | --- | --- | --- |
-| `/` | `home` | `paginaInicial.vue` | Catàleg de llibres de l’API externa. |
-| `/favorits` | `favorits` | `paginaFavorits.vue` | Pàgina de prova amb un missatge i quatre instàncies de `componentProva`. |
+## 2. Reactivitat amb `ref`
 
-### Catàleg de llibres
+`ref(valor)` crea una dada reactiva: quan canvia, Vue torna a pintar la part de la plantilla que la fa servir. Des del `<script>` s'hi accedeix amb `.value`; des del `<template>` no cal.
 
-En executar-se el hook `onBeforeMount` de `paginaInicial.vue`, es crida `getLlibres()` i se’n desa el resultat en una referència reactiva (`dadesLlibres`). La plantilla recorre aquesta llista amb `v-for` i genera una targeta `cmpFitxaLlibre` per llibre.
+**Al codi (`paginaInicial.vue`):**
 
-Cada targeta rep el llibre mitjançant la prop `infoLlibre` i mostra:
+```js
+const dadesLlibres = ref([])          // llista de llibres de l'API
+const loading = ref(false)            // mostra o amaga l'indicador de càrrega
+const genereSeleccionat = ref('')     // filtre de gènere ('' = tots)
+const nomesFavorits = ref(false)      // filtre de favorits
 
-- Imatge (`imagen`).
-- Títol (`titulo`).
-- Autor (`autor`).
-- Enllaç «Adfegir favorit», amb `href="#"`, que emet l’esdeveniment `peticioFav` amb l’identificador del llibre.
-
-La distribució fa servir les classes de Bootstrap `row` i `col-md-3`; les targetes tenen una amplada fixa de `18rem`. Tot i que el títol de la pàgina inicial és «Llibres favorits», el contingut és el catàleg retornat per l’API, no una selecció de favorits.
-
-### Comunicació entre pare i fill
-
-La pàgina `paginaInicial.vue` és el **pare** i cada targeta `cmpFitxaLlibre.vue` és un **fill**. La comunicació es fa en les dues direccions:
-
-1. **Pare → fill, mitjançant props:** el pare passa l’objecte del llibre amb `:infoLlibre="actual"`; el fill declara aquesta prop amb `defineProps(['infoLlibre'])`.
-2. **Fill → pare, mitjançant esdeveniments:** el fill declara `defineEmits(['peticioFav'])` i, en clicar l’enllaç, executa `$emit('peticioFav', infoLlibre.id)`.
-3. **Resposta del pare:** el pare escolta l’esdeveniment amb `@peticioFav="afegirFav"`. La funció `afegirFav(id)` rep l’identificador i mostra una alerta indicant quin llibre es vol marcar com a favorit.
-
-```vue
-<!-- paginaInicial.vue: passa les dades i escolta la petició del fill -->
-<fitxaLlibre :infoLlibre="actual" @peticioFav="afegirFav" />
+dadesLlibres.value = await getLlibres() // s'escriu amb .value
 ```
 
-Aquest flux ja està connectat, però l’alerta és només demostrativa: no modifica cap llista ni persisteix la selecció.
+## 3. Hooks del cicle de vida
 
-## Servei de dades
+Funcions que Vue executa en un moment concret de la vida del component (abans de muntar-lo, quan s'ha muntat, quan es destrueix…).
 
-Les peticions estan centralitzades a `src/services/communicationManager.js`.
+**Al codi:** `paginaInicial.vue` utilitza `onBeforeMount` per demanar les dades just abans de muntar el component:
 
-```text
-GET http://aperezh.daw.inspedralbes.cat/libros.php
+```js
+onBeforeMount(async () => {
+  dadesLlibres.value = await getLlibres()
+})
 ```
 
-La funció `getLlibres()` fa una petició amb `fetch`, interpreta la resposta com a JSON, l’escriu a la consola i retorna la propietat `libros`.
+## 4. Servei de comunicació amb l'API
 
-El codi consumidor espera una estructura com aquesta (exemple il·lustratiu, no una resposta verificada del servei):
+Les crides HTTP no es posen dins dels components, sinó en un mòdul a part (`communicationManager`). Així els components no saben res de la URL ni de `fetch`; només demanen dades.
 
-```json
-{
-  "libros": [
-    {
-      "id": 1,
-      "imagen": "https://exemple.cat/portada.jpg",
-      "titulo": "Títol del llibre",
-      "autor": "Nom de l’autor"
-    }
-  ]
+**Al codi (`src/services/communicationManager.js`):**
+
+```js
+export async function getLlibres() {
+    const resposta = await fetch(URL)
+    const dades = await resposta.json()
+    return dades.libros
 }
 ```
 
-No hi ha cap backend ni base de dades inclosos al repositori. L’URL del servei està escrita directament al fitxer de comunicacions; actualment no es configura amb variables d’entorn.
+- `async/await` permet escriure codi asíncron de manera lineal.
+- `fetch` fa la petició; `resposta.json()` converteix el cos en un objecte.
+- La funció s'exporta i s'importa a la vista: `import { getLlibres } from '@/services/communicationManager'`.
 
-## Estructura del repositori
+## 5. Gestió d'errors i estat de càrrega
 
-```text
-demoLibros/
-├── public/
-│   └── favicon.ico
-├── src/
-│   ├── assets/
-│   │   ├── base.css                 # Actualment buit
-│   │   ├── main.css                 # Actualment buit; importat a main.js
-│   │   └── logo.svg                 # Logotip de Vue
-│   ├── components/
-│   │   ├── cmpFitxaLlibre.vue        # Targeta amb les dades d’un llibre
-│   │   └── componentProva.vue       # Component de demostració
-│   ├── router/
-│   │   └── index.js                 # Rutes / i /favorits
-│   ├── services/
-│   │   └── communicationManager.js  # Consulta a l’API externa
-│   ├── stores/
-│   │   └── counter.js               # Store d’exemple de Pinia, no utilitzat
-│   ├── views/
-│   │   ├── paginaInicial.vue        # Càrrega i visualització del catàleg
-│   │   └── paginaFavorits.vue       # Vista de prova dels favorits
-│   ├── App.vue                     # Capçalera, navegació i RouterView
-│   └── main.js                     # Inicialització de Vue, Pinia i router
-├── index.html                      # Entrada HTML i càrrega de Bootstrap
-├── jsconfig.json                   # Àlies @/* per a l’editor
-├── vite.config.js                  # Connectors i àlies @ cap a src/
-├── package.json                    # Dependències i scripts
-└── package-lock.json               # Versions resoltes de les dependències
+`try/catch/finally` evita que un error de xarxa trenqui l'aplicació, i `finally` s'executa sempre, vagi bé o no. Combinat amb un `ref` booleà serveix per mostrar un indicador de càrrega.
+
+**Al codi (`paginaInicial.vue`):**
+
+```js
+try {
+  loading.value = true
+  dadesLlibres.value = await getLlibres()
+} catch (error) {
+  console.log("error")
+} finally {
+  loading.value = false   // ja no estem carregant, hagi anat bé o no
+}
 ```
 
-El store `counter.js` conserva l’exemple de comptador amb `count`, `doubleCount` i `increment()`. Cap de les vistes actuals el consumeix.
+```html
+<div v-if="loading"><img src="/loading.gif" alt=""></div>
+<div v-else class="row"> ... </div>
+```
 
-## Instal·lació i execució
+## 6. Directives de plantilla
 
-### Requisits
+| Directiva | Què fa | On es veu al codi |
+| --- | --- | --- |
+| `v-for` | Repeteix un element per cada element d'una llista | `v-for="actual in llibresFiltrats"` a `paginaInicial.vue`; `v-for="(actual,index) in store.favorits"` a `paginaFavorits.vue` |
+| `v-if` / `v-else` | Mostra o amaga elements segons una condició | Indicador de càrrega a `paginaInicial.vue`; botons «Afegir» / «Eliminar favorit» a `cmpFitxaLlibre.vue` |
+| `v-model` | Enllaç bidireccional entre un camp de formulari i un `ref` | `<select v-model="genere">` i `<input type="checkbox" v-model="nomesFavorits">` a `cmpFiltre.vue` |
+| `:atribut` (`v-bind`) | Assigna una expressió JS a un atribut o prop | `:src="infoLlibre.imagen"`, `:infoLlibre="actual"`, `:favorit="..."` |
+| `@esdeveniment` (`v-on`) | Escolta un esdeveniment del DOM o d'un component fill | `@click="emit(...)"`, `@change="canviSelect"`, `@afegirFav="afegirFavorit"` |
+| `{{ }}` | Interpolació de text | `{{ infoLlibre.titulo }}` |
 
-- Node.js compatible amb el rang de `package.json`: `^22.18.0 || >=24.12.0`.
-- npm.
-- Accés a Internet per consultar l’API externa i carregar Bootstrap des del CDN.
+## 7. Comunicació pare → fill (props)
 
-### Desenvolupament local
+El pare passa dades al fill com si fossin atributs; el fill les declara amb `defineProps`. Les props són de **només lectura** per al fill.
 
-Des de l’arrel del repositori:
+**Al codi:**
+
+```html
+<!-- paginaInicial.vue (pare) -->
+<fitxaLlibre :infoLlibre="actual" :favorit="store.esFavorit(actual.id)" />
+```
+
+```js
+// cmpFitxaLlibre.vue (fill)
+const props = defineProps(['infoLlibre', 'favorit'])
+```
+
+- `infoLlibre`: l'objecte del llibre a pintar.
+- `favorit`: booleà que decideix quin botó es mostra (`v-if="!favorit"` / `v-if="favorit"`).
+
+## 8. Comunicació fill → pare (emits)
+
+El fill no modifica les dades del pare; **emet un esdeveniment** (opcionalment amb una dada) i el pare decideix què fer-ne. L'esdeveniment es declara amb `defineEmits` i es llança amb `emit('nom', dada)`.
+
+**Al codi:**
+
+```js
+// cmpFitxaLlibre.vue (fill)
+const emit = defineEmits(['afegirFav', 'eliminarFav'])
+```
+```html
+<button @click="emit('afegirFav', infoLlibre.id)">Afegir favorit</button>
+```
+```html
+<!-- paginaInicial.vue (pare) escolta l'esdeveniment -->
+<fitxaLlibre @afegirFav="afegirFavorit" @eliminarFav="eliminarFavorit" ... />
+```
+```js
+function afegirFavorit(id) { ... }   // rep l'id enviat pel fill
+```
+
+El mateix patró s'usa a `cmpFiltre.vue`, que emet `evtCanviGenere` (amb el gènere triat) i `evtCanviFav` (amb el valor del checkbox). El pare els rep amb `canviGenere(nouGenere)` i `canviFav(nouValor)` i actualitza els seus `ref` de filtre.
+
+**Resum del flux:** pare →(props)→ fill; fill →(emit)→ pare; el pare canvia les dades i Vue repinta el fill amb les noves props.
+
+## 9. Slots
+
+Un *slot* permet que el **pare decideixi el contingut** que es pinta dins d'un lloc reservat del fill. És la tercera via de comunicació pare → fill, pensada per a contingut (text, HTML, altres components) i no tant per a dades.
+
+**Al codi:**
+
+```html
+<!-- cmpFiltre.vue (fill): reserva el lloc -->
+<h3><slot></slot></h3>
+```
+```html
+<!-- paginaInicial.vue (pare): omple el lloc -->
+<cmpFiltre @evtCanviFav="canviFav" @evtCanviGenere="canviGenere">
+  Filtre de llibres
+</cmpFiltre>
+```
+
+El text «Filtre de llibres» s'insereix on hi ha el `<slot>`. Així el mateix component de filtre es pot reutilitzar amb títols diferents.
+
+## 10. Propietats computades
+
+`computed` crea un valor **derivat** d'altres dades reactives. Es recalcula automàticament només quan canvia alguna de les dades de què depèn, i el resultat es manté en memòria cau. No és una funció que s'invoqui: s'usa com una variable (a l'script amb `.value`).
+
+**Al codi (`paginaInicial.vue`):** `llibresFiltrats` depèn de `dadesLlibres`, `genereSeleccionat`, `nomesFavorits` i `store.favorits`; quan qualsevol canvia, la llista es recalcula i la plantilla es repinta.
+
+```js
+const llibresFiltrats = computed(() => {
+  let resultat = []
+  for (let llibre of dadesLlibres.value) {
+    let mostrar = true
+    if (genereSeleccionat.value !== '' && llibre.genero !== genereSeleccionat.value) mostrar = false
+    if (nomesFavorits.value === true && store.esFavorit(llibre.id) === false) mostrar = false
+    if (mostrar) resultat.push(llibre)
+  }
+  return resultat
+})
+```
+```html
+<div v-for="actual in llibresFiltrats"> ... </div>
+```
+
+Mai es modifica `dadesLlibres`: el filtre només crea una vista derivada, de manera que en treure el filtre tornen a aparèixer tots els llibres.
+
+## 11. Pinia: estat compartit
+
+Passar dades per props/emits només funciona entre pare i fill. Quan dues pàgines no emparentades necessiten el mateix estat (aquí, la llista de favorits), es guarda en un **store de Pinia**, una font de veritat global i reactiva.
+
+**Definició (`src/stores/llibres.js`)**, amb sintaxi *setup store*:
+
+```js
+export const useLlibresStore = defineStore('llibres', () => {
+  const favorits = ref([])                        // state
+
+  function afegirFavorit(fav) { ... }             // actions
+  function esFavorit(id) { ... }
+  function eliminarFavorit(id) { ... }
+
+  return { favorits, afegirFavorit, esFavorit, eliminarFavorit }
+})
+```
+
+- Els `ref` fan de **state**, les funcions d'**actions**, i `computed` serviria de *getters*.
+- Només és accessible el que es retorna.
+- `afegirFavorit` comprova amb `esFavorit` que el llibre no estigui repetit abans d'afegir-lo.
+
+**Ús als components (3 passos, comentats al codi):**
+
+```js
+import { useLlibresStore } from '@/stores/llibres'   // 1. importar
+const store = useLlibresStore()                       // 2. crear/recuperar el store
+store.afegirFavorit(llibre)                           // 3. usar dades i mètodes
+```
+
+- `paginaInicial.vue` afegeix i treu favorits, i consulta `store.esFavorit(...)` per pintar el botó correcte i per filtrar.
+- `paginaFavorits.vue` pinta directament `store.favorits` i elimina amb `store.eliminarFavorit(id)`.
+- Com que les dues pàgines comparteixen el mateix store, un canvi en una es veu a l'altra, i l'estat es manté en navegar entre rutes.
+
+**Combinació amb props/emits:** `cmpFitxaLlibre` continua sent un component «tonto» (no coneix Pinia): rep `favorit` per prop i emet `afegirFav` / `eliminarFav`; són les pàgines pare qui parlen amb el store.
+
+## 12. Vue Router
+
+Permet tenir diverses «pàgines» en una SPA sense recarregar el navegador. Cada ruta associa un camí amb un component (vista).
+
+**Al codi:**
+
+```js
+// src/router/index.js
+routes: [
+  { path: '/',         name: 'home',     component: paginaInicial },
+  { path: '/favorits', name: 'favorits', component: paginaFavorits },
+]
+```
+```html
+<!-- App.vue -->
+<RouterLink class="btn btn-warning" to="/">Inici</RouterLink>
+<RouterLink class="btn btn-danger" to="/favorits">Llibres favorits</RouterLink>
+<RouterView />   <!-- aquí es pinta la vista de la ruta activa -->
+```
+
+- `RouterLink`: enllaç que navega sense recarregar.
+- `RouterView`: lloc on es renderitza el component de la ruta actual.
+- Convenció: les **vistes** (`src/views/`) són els components assignats a rutes; els **components** (`src/components/`) són les peces reutilitzables.
+
+## 13. Inicialització de l'aplicació
+
+`main.js` crea l'aplicació i hi connecta els *plugins* abans de muntar-la al DOM.
+
+```js
+const app = createApp(App)
+app.use(createPinia())   // activa Pinia (els stores funcionen)
+app.use(router)          // activa el router
+app.mount('#app')        // munta l'app a <div id="app"> d'index.html
+```
+
+---
+
+## Estructura del projecte
+
+```text
+src/
+├── main.js                         # Crea l'app i registra Pinia i el router
+├── App.vue                         # Capçalera, navegació i <RouterView>
+├── router/index.js                 # Rutes
+├── services/communicationManager.js  # Crides a l'API (fetch)
+├── stores/llibres.js               # Store de Pinia: favorits
+├── views/
+│   ├── paginaInicial.vue           # Catàleg, filtres, computed, càrrega
+│   └── paginaFavorits.vue          # Llista de favorits des del store
+└── components/
+    ├── cmpFitxaLlibre.vue          # Targeta: props + emits
+    └── cmpFiltre.vue               # Filtre: v-model + emits + slot
+```
+
+## Execució
 
 ```sh
 npm install
-npm run dev
+npm run dev       # servidor de desenvolupament (Vite)
+npm run build     # compilació de producció a dist/
+npm run preview   # previsualitza la compilació
 ```
 
-Obre l’adreça que indiqui Vite al terminal, habitualment `http://localhost:5173`.
-
-### Compilació per a producció
-
-```sh
-npm run build
-```
-
-Els fitxers generats es desen a `dist/`, directori exclòs del control de versions.
-
-Per previsualitzar localment aquesta compilació:
-
-```sh
-npm run preview
-```
-
-### Scripts disponibles
-
-| Ordre | Funció |
-| --- | --- |
-| `npm run dev` | Inicia el servidor de desenvolupament de Vite. |
-| `npm run build` | Genera la compilació de producció. |
-| `npm run preview` | Serveix localment la compilació generada. |
-
-No hi ha scripts de proves automatitzades ni de lint configurats.
-
-## Limitacions i aspectes pendents
-
-- **Favorits:** la petició del fill al pare ja està implementada amb `peticioFav`, però el pare només mostra una alerta. Falta implementar l’addició real, l’eliminació, l’estat compartit i la persistència dels llibres seleccionats.
-- **Pàgina de favorits:** encara mostra «Hello World!» i components de prova, no llibres desats.
-- **Gestió de peticions:** no es comprova `response.ok`, no es capturen errors i no hi ha indicadors de càrrega ni missatges per a llistes buides.
-- **Dependència externa:** el catàleg depèn de la disponibilitat del servei i dels permisos CORS que aquest proporcioni.
-- **HTTPS:** l’API està configurada amb HTTP; si l’aplicació es publica amb HTTPS, el navegador pot bloquejar la petició per contingut mixt.
-- **Desplegament:** el router utilitza `createWebHistory`; el servidor de producció ha de retornar `index.html` per a rutes com `/favorits` quan s’hi accedeix directament.
-- **Poliment:** falta afegir una `key` al `v-for` de llibres, validar les props de la targeta i substituir els textos alternatius genèrics de les portades. L’HTML encara conserva el títol «Vite App» i l’atribut `lang` buit.
-- **Proves:** no hi ha una bateria de proves automatitzades al repositori.
-
-## Validació realitzada
-
-Durant la redacció d’aquest README s’ha executat `npm run build` correctament amb Node.js `v22.21.0` i npm `11.16.0`. Aquesta comprovació valida la compilació, però no confirma la disponibilitat de l’API ni el comportament de l’aplicació al navegador.
+Requereix Node.js `^22.18.0 || >=24.12.0`. Les dades venen de `http://aperezh.daw.inspedralbes.cat/libros.php`, de manera que cal connexió a Internet.

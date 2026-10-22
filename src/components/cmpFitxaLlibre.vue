@@ -14,6 +14,7 @@
           <div class="card-body">
             <h5 class="card-title">{{ infoLlibre.titulo }}</h5>
             <p class="card-text">{{infoLlibre.autor}}</p>
+            <h4><span class="badge text-bg-secondary">{{infoLlibre.genero}}</span></h4>
             <!-- Quan facin click al botó faig un emit i envio tambe l'id -->
 
             <button v-if="!favorit" @click="emit('afegirFav', infoLlibre.id)" 
