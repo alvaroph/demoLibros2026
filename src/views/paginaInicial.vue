@@ -6,36 +6,52 @@ import { getLlibres } from '@/services/communicationManager'
 
 //PINIA 1. IMPORTO EL STORE STORES
 import { useLlibresStore } from '@/stores/llibres'
-
+const store= useLlibresStore();
+   
 //ARRAY DE LLIBRES PER MOSTRARLOS
 const dadesLlibres= ref([])
-
+const loading = ref(false)
 
 onBeforeMount(async () => {
   //1. ABANS DE MUNTAR ELS COMPONENTS DEMANO LES DADES AL COMMUNICATION MANAGER
-  dadesLlibres.value = await getLlibres()
+ //PINIA 2. RECUPERO EL STORE i es dira store
+    
+  try {
+     loading.value=true
+     dadesLlibres.value = await getLlibres()
+  } catch (error) {
+     console.log("error")
+  } finally{
+      //HAGI ANAT BE O NO, JA NO ESTEM CARREGANT
+      loading.value=false
+  }
+
 })
 
-  function afegirFav(id){
-    //PINIA 2. RECUPERO EL STORE i es dira store
-      const store= useLlibresStore();
-      //GUARDO LA INFORMACIÓ DEL LLIBRE SELECCIONAT
-
+  function afegirFavorit(id){
       //PINIA 3. FAIG SERVIR METODES O DADES DEL STORE
       store.afegirFavorit(dadesLlibres.value[id-1])
+    }
 
-      //La versió de sota es podria fer pero es millor fer servir mètodes
-      //store.favorits.push(dadesLlibres.value[id-1])
-
+    function eliminarFavorit(id){
+      store.eliminarFavorit(id)
     }
 </script>
 
 <template>
   <h1>Llibres favorits</h1>
-  <div class="row">
-  <div class="col-md-3" v-for="actual in dadesLlibres">
-        <fitxaLlibre @peticioFav="afegirFav" :infoLlibre="actual"/>
+  <div v-if="loading">
+    <img src="/loading.gif" alt="">
   </div>
-</div>
+  
+  <div v-else class="row">
+    <div class="col-md-3" v-for="actual in dadesLlibres">
+          <fitxaLlibre 
+          @afegirFav="afegirFavorit"
+          @eliminarFav="eliminarFavorit" 
+          :infoLlibre="actual" 
+          :favorit="store.esFavorit(actual.id)"/>
+    </div>
+  </div>
 </template>
 

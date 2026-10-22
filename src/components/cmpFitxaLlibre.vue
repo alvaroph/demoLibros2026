@@ -1,10 +1,10 @@
 <script setup>
     //DEFINEIXO COM EM PASSARA LA INFORMACIO EL PARE
-    const props = defineProps(['infoLlibre'])
+    const props = defineProps(['infoLlibre','favorit'])
 
     //DEFINEIXO L'EVENT QUE PASSARE AL PARE MITJANÇANT EMITS
     //QUAN EL LLANCI AFEGIRE EL ID COM A INFORMACIO
-    const emit=defineEmits(['peticioFav'])
+    const emit=defineEmits(['afegirFav','eliminarFav'])
 
 </script>
 
@@ -16,10 +16,12 @@
             <p class="card-text">{{infoLlibre.autor}}</p>
             <!-- Quan facin click al botó faig un emit i envio tambe l'id -->
 
-
-            <button @click="emit('peticioFav', infoLlibre.id)" 
+            <button v-if="!favorit" @click="emit('afegirFav', infoLlibre.id)" 
                     class="btn btn-primary">
-                    Adfegir favorit</button>
+                    Afegir favorit</button>
+             <button v-if="favorit" @click="emit('eliminarFav', infoLlibre.id)" 
+                    class="btn btn-danger">
+                    Eliminar favorit</button>
           </div>
         </div>
 </template>
