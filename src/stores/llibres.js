@@ -1,9 +1,32 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { getLlibres } from '@/services/communicationManager'
+
 
 export const useLlibresStore = defineStore('llibres', () => {
+
+  console.log('CREANT STORE LLIBRES')
+  //INFORMACIÓ DE TOTS ELS LLIBRES, NO ES REACTIU, NOMES SONB DADES!!
+  let dadesLlibres= []
+  //LLIBRES FAVORITS
   const favorits = ref([])
+
+  async function carregarLlibres() {
+    if (dadesLlibres.length==0){
+        try {
+          console.log("faig un fetch")
+          dadesLlibres = await getLlibres()
+        } catch (error) {
+          console.error('Error carregant llibres:', error)
+        } finally {
+          return dadesLlibres;
+        }
+    }
+    else return dadesLlibres;
+    
+  }
   
+
   function afegirFavorit(fav) {
     if (!esFavorit(fav.id)) {
       favorits.value.push(fav)
@@ -28,5 +51,5 @@ export const useLlibresStore = defineStore('llibres', () => {
     }
   }
 
-  return { favorits, afegirFavorit, esFavorit, eliminarFavorit }
+  return {  carregarLlibres , favorits, afegirFavorit, esFavorit, eliminarFavorit }
 })

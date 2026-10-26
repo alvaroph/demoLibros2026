@@ -2,7 +2,7 @@
 import { ref , computed } from 'vue'
 import { onBeforeMount } from 'vue'
 import fitxaLlibre from '@/components/cmpFitxaLlibre.vue'
-import { getLlibres } from '@/services/communicationManager'
+//import { getLlibres } from '@/services/communicationManager'
 import cmpFiltre from '@/components/cmpFiltre.vue'
 
 // FILTRES ACTUALS
@@ -23,7 +23,8 @@ onBeforeMount(async () => {
     
   try {
      loading.value=true
-     dadesLlibres.value = await getLlibres()
+     dadesLlibres.value = await store.carregarLlibres()
+      
   } catch (error) {
      console.log("error")
   } finally{
