@@ -43,24 +43,26 @@ const loading = ref(false)            // mostra o amaga l'indicador de càrrega
 const genereSeleccionat = ref('')     // filtre de gènere ('' = tots)
 const nomesFavorits = ref(false)      // filtre de favorits
 
-dadesLlibres.value = await getLlibres() // s'escriu amb .value
+dadesLlibres.value = await store.carregarLlibres() // s'escriu amb .value
 ```
 
 ## 3. Hooks del cicle de vida
 
 Funcions que Vue executa en un moment concret de la vida del component (abans de muntar-lo, quan s'ha muntat, quan es destrueix…).
 
-**Al codi:** `paginaInicial.vue` utilitza `onBeforeMount` per demanar les dades just abans de muntar el component:
+**Al codi:** `paginaInicial.vue` utilitza `onBeforeMount` per demanar les dades al store just abans de muntar el component:
 
 ```js
 onBeforeMount(async () => {
-  dadesLlibres.value = await getLlibres()
+  dadesLlibres.value = await store.carregarLlibres()
 })
 ```
 
 ## 4. Servei de comunicació amb l'API
 
-Les crides HTTP no es posen dins dels components, sinó en un mòdul a part (`communicationManager`). Així els components no saben res de la URL ni de `fetch`; només demanen dades.
+La vista demana els llibres amb `store.carregarLlibres()`. Aquesta acció de Pinia crida `getLlibres()` del mòdul `communicationManager`, que és on s'executa el `fetch`. Així el component gestiona la interfície, el store decideix si cal carregar dades i el servei encapsula la comunicació HTTP.
+
+**Flux:** `paginaInicial.vue` → `store.carregarLlibres()` → `getLlibres()` → `fetch`.
 
 **Al codi (`src/services/communicationManager.js`):**
 
@@ -74,18 +76,18 @@ export async function getLlibres() {
 
 - `async/await` permet escriure codi asíncron de manera lineal.
 - `fetch` fa la petició; `resposta.json()` converteix el cos en un objecte.
-- La funció s'exporta i s'importa a la vista: `import { getLlibres } from '@/services/communicationManager'`.
+- La funció s'exporta i s'importa al store (`src/stores/llibres.js`): `import { getLlibres } from '@/services/communicationManager'`.
 
 ## 5. Gestió d'errors i estat de càrrega
 
-`try/catch/finally` evita que un error de xarxa trenqui l'aplicació, i `finally` s'executa sempre, vagi bé o no. Combinat amb un `ref` booleà serveix per mostrar un indicador de càrrega.
+La vista espera l'acció del store amb `await` i controla l'indicador de càrrega amb `loading`. El bloc `finally` s'executa tant si la crida acaba bé com si falla, i permet desactivar sempre l'indicador.
 
 **Al codi (`paginaInicial.vue`):**
 
 ```js
 try {
   loading.value = true
-  dadesLlibres.value = await getLlibres()
+  dadesLlibres.value = await store.carregarLlibres()
 } catch (error) {
   console.log("error")
 } finally {
@@ -97,6 +99,8 @@ try {
 <div v-if="loading"><img src="/loading.gif" alt=""></div>
 <div v-else class="row"> ... </div>
 ```
+
+El store també té un `try/catch/finally` dins de `carregarLlibres()`: captura els errors del servei i els escriu a la consola. En el codi actual, el `finally` del store retorna `dadesLlibres`, de manera que aquests errors no es propaguen al `catch` de la vista; si la càrrega falla, la vista rep l'array buit.
 
 ## 6. Directives de plantilla
 
@@ -198,24 +202,39 @@ Mai es modifica `dadesLlibres`: el filtre només crea una vista derivada, de man
 
 ## 11. Pinia: estat compartit
 
-Passar dades per props/emits només funciona entre pare i fill. Quan dues pàgines no emparentades necessiten el mateix estat (aquí, la llista de favorits), es guarda en un **store de Pinia**, una font de veritat global i reactiva.
+Les props i els emits permeten comunicar pare i fill. Quan dues pàgines necessiten el mateix estat (aquí, la llista de favorits), es guarda en un **store de Pinia**, una font de veritat compartida i reactiva. En aquest projecte, el store també centralitza la càrrega del catàleg i conserva els llibres ja obtinguts per reutilitzar-los.
 
 **Definició (`src/stores/llibres.js`)**, amb sintaxi *setup store*:
 
 ```js
 export const useLlibresStore = defineStore('llibres', () => {
-  const favorits = ref([])                        // state
+  let dadesLlibres = []                          // dades internes no reactives
+  const favorits = ref([])                       // state reactiu
+
+  async function carregarLlibres() {
+    if (dadesLlibres.length == 0) {
+      try {
+        dadesLlibres = await getLlibres()
+      } catch (error) {
+        console.error('Error carregant llibres:', error)
+      } finally {
+        return dadesLlibres
+      }
+    }
+    return dadesLlibres
+  }
 
   function afegirFavorit(fav) { ... }             // actions
   function esFavorit(id) { ... }
   function eliminarFavorit(id) { ... }
 
-  return { favorits, afegirFavorit, esFavorit, eliminarFavorit }
+  return { carregarLlibres, favorits, afegirFavorit, esFavorit, eliminarFavorit }
 })
 ```
 
 - Els `ref` fan de **state**, les funcions d'**actions**, i `computed` serviria de *getters*.
-- Només és accessible el que es retorna.
+- Només és accessible el que es retorna. L'array intern `dadesLlibres` no es retorna directament ni és un `ref`: s'obté a través de `carregarLlibres()`. La vista desa el resultat al seu propi `dadesLlibres = ref([])` per mostrar-lo i filtrar-lo de manera reactiva.
+- `carregarLlibres()` només crida el servei si l'array intern és buit. Si ja conté llibres, els retorna sense repetir el `fetch` en tornar a la pàgina inicial. Si la resposta és buida o la càrrega falla, una crida posterior tornarà a intentar la petició.
 - `afegirFavorit` comprova amb `esFavorit` que el llibre no estigui repetit abans d'afegir-lo.
 
 **Ús als components (3 passos, comentats al codi):**
@@ -226,7 +245,7 @@ const store = useLlibresStore()                       // 2. crear/recuperar el s
 store.afegirFavorit(llibre)                           // 3. usar dades i mètodes
 ```
 
-- `paginaInicial.vue` afegeix i treu favorits, i consulta `store.esFavorit(...)` per pintar el botó correcte i per filtrar.
+- `paginaInicial.vue` carrega el catàleg amb `await store.carregarLlibres()`, afegeix i treu favorits, i consulta `store.esFavorit(...)` per pintar el botó correcte i per filtrar.
 - `paginaFavorits.vue` pinta directament `store.favorits` i elimina amb `store.eliminarFavorit(id)`.
 - Com que les dues pàgines comparteixen el mateix store, un canvi en una es veu a l'altra, i l'estat es manté en navegar entre rutes.
 
@@ -309,9 +328,9 @@ src/
 ├── App.vue                         # Capçalera, navegació i <RouterView>
 ├── router/index.js                 # Rutes
 ├── services/communicationManager.js  # Crides a l'API (fetch)
-├── stores/llibres.js               # Store de Pinia: favorits
+├── stores/llibres.js               # Store de Pinia: càrrega del catàleg i favorits
 ├── views/
-│   ├── paginaInicial.vue           # Catàleg, filtres, computed, càrrega
+│   ├── paginaInicial.vue           # Catàleg, filtres, computed i indicador de càrrega
 │   └── paginaFavorits.vue          # Llista de favorits des del store
 └── components/
     ├── cmpFitxaLlibre.vue          # Targeta: props + emits
