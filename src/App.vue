@@ -5,15 +5,11 @@ import { RouterLink, RouterView } from 'vue-router'
 <template>
   <div class="container">
 
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <nav>
-        <RouterLink class="btn btn-warning" to="/">Inici</RouterLink>
-        <RouterLink class="btn btn-danger" to="/favorits">Llibres favorits</RouterLink>
-      </nav>
-    </div>
+  <header class="d-flex align-items-center gap-3 py-3">
+    <nav class="d-flex gap-2">
+      <RouterLink class="btn btn-warning" to="/">Inici</RouterLink>
+      <RouterLink class="btn btn-danger" to="/favorits">Llibres favorits</RouterLink>
+    </nav>
   </header>
 
   

@@ -81,15 +81,15 @@ onBeforeMount(async () => {
     <img src="/loading.gif" alt="">
   </div>
   
-  <div v-else class="row">
+  <div v-else class="row g-3">
 
-    <cmpFiltre  
+    <cmpFiltre
       @evtCanviFav="canviFav"
       @evtCanviGenere="canviGenere">
       Filtre de llibres
     </cmpFiltre>
 
-    <div class="col-md-3" v-for="actual in llibresFiltrats">
+    <div class="col-md-4" v-for="actual in llibresFiltrats">
           <fitxaLlibre 
           @afegirFav="afegirFavorit"
           @eliminarFav="eliminarFavorit" 
